@@ -88,6 +88,15 @@
   @apply rounded px-2 py-1 text-xs font-medium;
 }
 
+.calendar-crud .rbc-day-slot,
+.calendar-crud .rbc-month-view .rbc-day-bg {
+  cursor: pointer;
+}
+
+.calendar-crud .rbc-slot-selection {
+  @apply bg-primary/20;
+}
+
 /* Priority colors for calendar events */
 .event-urgent { @apply bg-red-500 text-white; }
 .event-high { @apply bg-orange-500 text-white; }
