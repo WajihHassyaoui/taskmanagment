@@ -34,7 +34,7 @@ export function Sidebar() {
       )}
     >
       <div className="p-6 flex items-center justify-between">
-        {!collapsed && <h1 className="text-xl font-bold text-primary">TaskMaster</h1>}
+        {!collapsed && <h1 className="text-xl font-bold text-primary">Yalla Task Go</h1>}
         <Button 
           variant="ghost" 
           size="icon" 
