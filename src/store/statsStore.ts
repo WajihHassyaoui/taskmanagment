@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import { invoke } from '@/lib/tauri';
+import { isTauriApp, invoke } from '@/lib/tauri';
+import { requireUserId } from '@/lib/userData';
+import {
+  localGetAchievements,
+  localGetDashboardStats,
+  localGetWeeklyStats,
+} from '@/lib/localStats';
 
 export interface DayStat {
   date: string;
@@ -42,24 +48,33 @@ export const useStatsStore = create<StatsState>((set) => ({
   error: null,
   fetchDashboardStats: async () => {
     try {
-      const stats = await invoke<DashboardStats>('get_dashboard_stats');
-      set({ dashboardStats: stats });
+      const userId = requireUserId();
+      const stats = isTauriApp()
+        ? await invoke<DashboardStats>('get_dashboard_stats')
+        : localGetDashboardStats(userId);
+      set({ dashboardStats: stats, error: null });
     } catch (error) {
       set({ error: (error as Error).message });
     }
   },
   fetchWeeklyStats: async () => {
     try {
-      const stats = await invoke<DayStat[]>('get_weekly_stats');
-      set({ weeklyStats: stats });
+      const userId = requireUserId();
+      const stats = isTauriApp()
+        ? await invoke<DayStat[]>('get_weekly_stats')
+        : localGetWeeklyStats(userId);
+      set({ weeklyStats: stats, error: null });
     } catch (error) {
       set({ error: (error as Error).message });
     }
   },
   fetchAchievements: async () => {
     try {
-      const achievements = await invoke<Achievement[]>('get_achievements');
-      set({ achievements });
+      const userId = requireUserId();
+      const achievements = isTauriApp()
+        ? await invoke<Achievement[]>('get_achievements')
+        : localGetAchievements(userId);
+      set({ achievements, error: null });
     } catch (error) {
       set({ error: (error as Error).message });
     }

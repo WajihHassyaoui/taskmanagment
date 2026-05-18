@@ -8,8 +8,11 @@ import {
   TrendingUp, 
   Flame,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LogOut,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useStatsStore } from '@/store/statsStore';
@@ -25,6 +28,13 @@ const navItems = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = React.useState(false);
   const { dashboardStats } = useStatsStore();
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <div 
@@ -64,7 +74,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t space-y-2">
         <div className={cn(
           "flex items-center p-3 rounded-lg bg-orange-500/10 text-orange-500",
           collapsed && "justify-center"
@@ -77,6 +87,17 @@ export function Sidebar() {
             </div>
           )}
         </div>
+        <Button
+          variant="ghost"
+          className={cn('w-full justify-start text-muted-foreground', collapsed && 'justify-center px-0')}
+          onClick={handleLogout}
+        >
+          <LogOut size={20} />
+          {!collapsed && <span className="ml-3">Sign out</span>}
+        </Button>
+        {!collapsed && user && (
+          <p className="text-xs text-muted-foreground truncate px-1">@{user.username}</p>
+        )}
       </div>
     </div>
   );

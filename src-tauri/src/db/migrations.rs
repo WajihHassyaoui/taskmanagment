@@ -52,4 +52,13 @@ pub const MIGRATIONS: &[&str] = &[
       streak INTEGER DEFAULT 0
     );
     "#,
+    r#"
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      display_name TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    "#,
 ];

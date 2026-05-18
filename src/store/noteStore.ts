@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { invoke } from '@/lib/tauri';
+import { isTauriApp, invoke } from '@/lib/tauri';
+import { requireUserId } from '@/lib/userData';
+import {
+  localCreateNote,
+  localDeleteNote,
+  localGetNotes,
+  localUpdateNote,
+} from '@/lib/localNotes';
 
 export interface Note {
   id: string;
@@ -30,35 +37,65 @@ export const useNoteStore = create<NoteState>((set) => ({
   fetchNotes: async () => {
     set({ loading: true });
     try {
-      const notes = await invoke<Note[]>('get_notes');
-      set({ notes, loading: false });
+      const userId = requireUserId();
+      const notes = isTauriApp()
+        ? await invoke<Note[]>('get_notes')
+        : localGetNotes(userId);
+      set({ notes, loading: false, error: null });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
     }
   },
   addNote: async (note) => {
     try {
-      const newNote = await invoke<Note>('create_note', { note });
-      set((state) => ({ notes: [newNote, ...state.notes] }));
+      const userId = requireUserId();
+      const payload = {
+        title: note.title ?? '',
+        content: note.content ?? null,
+        tags: note.tags ?? null,
+        color: note.color,
+        pinned: note.pinned,
+        task_id: note.task_id ?? null,
+      };
+      const newNote = isTauriApp()
+        ? await invoke<Note>('create_note', { note: payload })
+        : localCreateNote(userId, payload);
+      set((state) => ({ notes: [newNote, ...state.notes], error: null }));
     } catch (error) {
       set({ error: (error as Error).message });
     }
   },
   updateNote: async (id, note) => {
     try {
-      const updatedNote = await invoke<Note>('update_note', { id, note });
-      set((state) => ({
-        notes: state.notes.map((n) => (n.id === id ? updatedNote : n)),
-      }));
+      const userId = requireUserId();
+      if (isTauriApp()) {
+        const updatedNote = await invoke<Note>('update_note', { id, note });
+        set((state) => ({
+          notes: state.notes.map((n) => (n.id === id ? updatedNote : n)),
+          error: null,
+        }));
+      } else {
+        const updatedNote = localUpdateNote(userId, id, note);
+        set((state) => ({
+          notes: state.notes.map((n) => (n.id === id ? updatedNote : n)),
+          error: null,
+        }));
+      }
     } catch (error) {
       set({ error: (error as Error).message });
     }
   },
   deleteNote: async (id) => {
     try {
-      await invoke('delete_note', { id });
+      const userId = requireUserId();
+      if (isTauriApp()) {
+        await invoke('delete_note', { id });
+      } else {
+        localDeleteNote(userId, id);
+      }
       set((state) => ({
         notes: state.notes.filter((n) => n.id !== id),
+        error: null,
       }));
     } catch (error) {
       set({ error: (error as Error).message });

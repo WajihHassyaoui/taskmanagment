@@ -1,10 +1,12 @@
 import type { Task } from '@/store/taskStore';
 
-const STORAGE_KEY = 'yalla-task-go-tasks';
+function storageKey(userId: string) {
+  return `yalla-task-go-tasks-${userId}`;
+}
 
-function readAll(): Task[] {
+function readAll(userId: string): Task[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey(userId));
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Task[];
     return Array.isArray(parsed) ? parsed : [];
@@ -13,34 +15,37 @@ function readAll(): Task[] {
   }
 }
 
-function writeAll(tasks: Task[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+function writeAll(userId: string, tasks: Task[]): void {
+  localStorage.setItem(storageKey(userId), JSON.stringify(tasks));
 }
 
 function nowString(): string {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
 }
 
-export function localGetTasks(date?: string): Task[] {
-  const tasks = readAll().sort(
+export function localGetTasks(userId: string, date?: string): Task[] {
+  const tasks = readAll(userId).sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
   if (!date) return tasks;
   return tasks.filter((t) => t.due_date === date || t.recurrence !== 'none');
 }
 
-export function localCreateTask(input: {
-  title: string;
-  description?: string | null;
-  due_date?: string | null;
-  due_time?: string | null;
-  priority?: string;
-  category?: string;
-  status?: string;
-  recurrence?: string;
-  parent_id?: string | null;
-}): Task {
-  const tasks = readAll();
+export function localCreateTask(
+  userId: string,
+  input: {
+    title: string;
+    description?: string | null;
+    due_date?: string | null;
+    due_time?: string | null;
+    priority?: string;
+    category?: string;
+    status?: string;
+    recurrence?: string;
+    parent_id?: string | null;
+  }
+): Task {
+  const tasks = readAll(userId);
   const now = nowString();
   const task: Task = {
     id: crypto.randomUUID(),
@@ -57,15 +62,16 @@ export function localCreateTask(input: {
     created_at: now,
     updated_at: now,
   };
-  writeAll([task, ...tasks]);
+  writeAll(userId, [task, ...tasks]);
   return task;
 }
 
 export function localUpdateTask(
+  userId: string,
   id: string,
   patch: Record<string, string | null | number | undefined>
 ): Task {
-  const tasks = readAll();
+  const tasks = readAll(userId);
   const index = tasks.findIndex((t) => t.id === id);
   if (index === -1) throw new Error('Task not found');
 
@@ -94,10 +100,13 @@ export function localUpdateTask(
   };
 
   tasks[index] = updated;
-  writeAll(tasks);
+  writeAll(userId, tasks);
   return updated;
 }
 
-export function localDeleteTask(id: string): void {
-  writeAll(readAll().filter((t) => t.id !== id));
+export function localDeleteTask(userId: string, id: string): void {
+  writeAll(
+    userId,
+    readAll(userId).filter((t) => t.id !== id)
+  );
 }

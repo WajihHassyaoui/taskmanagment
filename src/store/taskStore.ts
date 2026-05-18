@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { isTauriApp, invoke } from '@/lib/tauri';
+import { requireUserId } from '@/lib/userData';
 import {
   localCreateTask,
   localDeleteTask,
   localGetTasks,
   localUpdateTask,
 } from '@/lib/localTasks';
+import { localUnlockAchievement } from '@/lib/localStats';
 
 export interface Task {
   id: string;
@@ -69,9 +71,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   fetchTasks: async (date) => {
     set({ loading: true });
     try {
+      const userId = requireUserId();
       const tasks = isTauriApp()
         ? await invoke<Task[]>('get_tasks', { date })
-        : localGetTasks(date);
+        : localGetTasks(userId, date);
       set({ tasks, loading: false, error: null });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
@@ -82,10 +85,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       throw new Error('Task title is required');
     }
     try {
+      const userId = requireUserId();
       const payload = toCreatePayload(task);
       const newTask = isTauriApp()
         ? await invoke<Task>('create_task', { task: payload })
-        : localCreateTask(payload);
+        : localCreateTask(userId, payload);
       set((state) => ({
         tasks: [newTask, ...state.tasks.filter((t) => t.id !== newTask.id)],
         error: null,
@@ -99,10 +103,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
   updateTask: async (id, task) => {
     try {
+      const userId = requireUserId();
       const payload = toUpdatePayload(task);
       const updatedTask = isTauriApp()
         ? await invoke<Task>('update_task', { id, task: payload })
-        : localUpdateTask(id, payload);
+        : localUpdateTask(userId, id, payload);
       set((state) => ({
         tasks: state.tasks.map((t) => (t.id === id ? updatedTask : t)),
         error: null,
@@ -116,10 +121,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
   deleteTask: async (id) => {
     try {
+      const userId = requireUserId();
       if (isTauriApp()) {
         await invoke('delete_task', { id });
       } else {
-        localDeleteTask(id);
+        localDeleteTask(userId, id);
       }
       set((state) => ({
         tasks: state.tasks.filter((t) => t.id !== id),
@@ -137,8 +143,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const newStatus = task.status === 'done' ? 'todo' : 'done';
     await get().updateTask(id, { status: newStatus });
 
-    if (newStatus === 'done' && isTauriApp()) {
-      await invoke('unlock_achievement', { key: 'first_task' });
+    if (newStatus === 'done') {
+      if (isTauriApp()) {
+        await invoke('unlock_achievement', { key: 'first_task' });
+      } else {
+        localUnlockAchievement(requireUserId(), 'first_task');
+      }
     }
   },
 }));

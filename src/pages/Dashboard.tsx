@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useTaskStore } from '@/store/taskStore';
 import { useStatsStore } from '@/store/statsStore';
+import { useAuthStore } from '@/store/authStore';
 import { getDailyQuote } from '@/lib/quotes';
 import { cn } from '@/lib/utils';
 import { 
@@ -29,6 +30,7 @@ import {
 import { format } from 'date-fns';
 
 export default function Dashboard() {
+  const { user } = useAuthStore();
   const { tasks, fetchTasks, addTask } = useTaskStore();
   const { dashboardStats, weeklyStats, fetchDashboardStats, fetchWeeklyStats } = useStatsStore();
   const [newTaskTitle, setNewTaskTitle] = React.useState('');
@@ -63,7 +65,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <header className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome back, John!</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Welcome back, {user?.display_name ?? 'there'}!
+        </h1>
         <p className="text-muted-foreground italic">"{getDailyQuote()}"</p>
       </header>
 
